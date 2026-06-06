@@ -27,6 +27,7 @@ max_description_length = 100
 anchor_re = re.compile(anchor + '\s(.+)')
 category_title_in_index_re = re.compile('\*\s\[(.*)\]')
 link_re = re.compile('\[(.+)\]\((http.*)\)')
+table_separator_re = re.compile(r'^\|(?:\s*:?-+:?\s*\|)+$')
 
 # Type aliases
 APIList = List[str]
@@ -39,10 +40,15 @@ def error_message(line_number: int, message: str) -> str:
     return f'(L{line:03d}) {message}'
 
 
+def is_table_separator_line(line_content: str) -> bool:
+    return table_separator_re.match(line_content) is not None
+
+
 def get_categories_content(contents: List[str]) -> Tuple[Categories, CategoriesLineNumber]:
 
     categories = {}
     category_line_num = {}
+    category = ''
 
     for line_num, line_content in enumerate(contents):
 
@@ -52,7 +58,7 @@ def get_categories_content(contents: List[str]) -> Tuple[Categories, CategoriesL
             category_line_num[category] = line_num
             continue
 
-        if not line_content.startswith('|') or line_content.startswith('|---'):
+        if not line_content.startswith('|') or is_table_separator_line(line_content):
             continue
 
         raw_title = [
@@ -60,9 +66,9 @@ def get_categories_content(contents: List[str]) -> Tuple[Categories, CategoriesL
         ][0]
 
         title_match = link_re.match(raw_title)
-        if title_match:
-                title = title_match.group(1).upper()
-                categories[category].append(title)
+        if title_match and category in categories:
+            title = title_match.group(1).upper()
+            categories[category].append(title)
 
     return (categories, category_line_num)
 
@@ -228,7 +234,7 @@ def check_file_format(lines: List[str]) -> List[str]:
             continue
 
         # skips lines that we do not care about
-        if not line_content.startswith('|') or line_content.startswith('|---'):
+        if not line_content.startswith('|') or is_table_separator_line(line_content):
             continue
 
         num_in_category += 1
