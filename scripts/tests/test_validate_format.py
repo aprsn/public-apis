@@ -116,6 +116,23 @@ class TestValidadeFormat(unittest.TestCase):
 
             with self.subTest():
                 self.assertEqual(err_msg, ex_err_msg)
+
+    def test_if_get_categories_content_ignores_entries_before_first_category(self):
+        fake_contents = [
+            '## APILayer APIs',
+            'API | Description | Call this API |',
+            '|:---|:---|:---|',
+            '| [Marketstack](https://marketstack.com) | Desc | [Run](https://example.com) |',
+            '',
+            '### A',
+            'API | Description | Auth | HTTPS | CORS |',
+            '|---|---|---|---|---|',
+            '| [AA](https://www.ex.com) | Desc | `apiKey` | Yes | Yes |',
+        ]
+
+        categories, category_line_num = get_categories_content(fake_contents)
+        self.assertEqual(categories, {'A': ['AA']})
+        self.assertEqual(category_line_num, {'A': 5})
     
     def test_check_title_with_correct_title(self):
         raw_title = '[A](https://www.ex.com)'
@@ -369,6 +386,22 @@ class TestValidadeFormat(unittest.TestCase):
 
         self.assertIsInstance(err_msgs, list)
         self.assertEqual(len(err_msgs), 0)
+        self.assertEqual(err_msgs, [])
+
+    def test_check_file_format_with_markdown_alignment_separator(self):
+        correct_format = [
+            '## Index',
+            '* [A](#a)',
+            '',
+            '### A',
+            'API | Description | Auth | HTTPS | CORS |',
+            '|:---|:---|:---|:---|:---|',
+            '| [AA](https://www.ex.com) | Desc | `apiKey` | Yes | Yes |',
+            '| [AB](https://www.ex.com) | Desc | `apiKey` | Yes | Yes |',
+            '| [AC](https://www.ex.com) | Desc | `apiKey` | Yes | Yes |',
+        ]
+
+        err_msgs = check_file_format(lines=correct_format)
         self.assertEqual(err_msgs, [])
 
     def test_check_file_format_with_category_header_not_added_to_index(self):
